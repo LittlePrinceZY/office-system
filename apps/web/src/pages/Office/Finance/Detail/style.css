@@ -1,0 +1,60 @@
+.reimbursement-detail-page {
+  padding: 0;
+}
+
+.reimbursement-detail-page .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.reimbursement-detail-page .page-header .ant-btn {
+  display: flex;
+  align-items: center;
+}
+
+.reimbursement-detail-page .detail-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s;
+}
+
+.reimbursement-detail-page .detail-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.reimbursement-detail-page .ant-descriptions-item-label {
+  font-weight: 500;
+  background-color: #fafafa;
+}
+
+.reimbursement-detail-page .ant-timeline-item {
+  padding-bottom: 16px;
+}
+
+.reimbursement-detail-page .ant-timeline-item-last {
+  padding-bottom: 0;
+}
+
+.reimbursement-detail-page .ant-avatar {
+  border: 2px solid #f0f0f0;
+}
+
+.reimbursement-detail-page .ant-list-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.reimbursement-detail-page .ant-list-item:last-child {
+  border-bottom: none;
+}
+
+.reimbursement-detail-page .ant-btn-block {
+  height: 40px;
+  font-weight: 500;
+}
+
+.reimbursement-detail-page .ant-popconfirm-buttons {
+  margin-top: 16px;
+}

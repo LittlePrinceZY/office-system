@@ -1,0 +1,515 @@
+// 企业办公系统数据库Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 系统配置 ====================
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+  
+  @@map("system_configs")
+}
+
+// ==================== 用户与权限 ====================
+model User {
+  id            String    @id @default(uuid())
+  username      String    @unique
+  password      String    // bcrypt加密
+  realName      String    @map("real_name")
+  avatar        String?
+  email         String?
+  phone         String?
+  employeeId    String?   @unique @map("employee_id")
+  departmentId  String?   @map("department_id")
+  position      String?
+  status        UserStatus @default(ACTIVE)
+  isAdmin       Boolean   @default(false) @map("is_admin")
+  lastLoginAt   DateTime? @map("last_login_at")
+  lastLoginIp   String?   @map("last_login_ip")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  department    Department? @relation(fields: [departmentId], references: [id])
+  userRoles     UserRole[]
+  sentMessages  Message[]   @relation("SentMessages")
+  chatMembers   ChatMember[]
+  announcements Announcement[]
+  announcementsRead AnnouncementRead[]
+  approvals     Approval[]
+  approvalTasks ApprovalTask[]
+  reimbursements Reimbursement[]
+  customers     Customer[]
+  contacts      Contact[]
+  followUps     FollowUp[]
+  notifications Notification[]
+  
+  @@map("users")
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  code        String    @unique
+  description String?
+  isSystem    Boolean   @default(false) @map("is_system")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  userRoles   UserRole[]
+  rolePermissions RolePermission[]
+  
+  @@map("roles")
+}
+
+model UserRole {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  roleId    String @map("role_id")
+  
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  type        PermissionType
+  parentId    String?   @map("parent_id")
+  path        String?
+  icon        String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  parent      Permission? @relation("PermissionHierarchy", fields: [parentId], references: [id])
+  children    Permission[] @relation("PermissionHierarchy")
+  rolePermissions RolePermission[]
+  
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+  
+  role         Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ==================== 组织架构 ====================
+model Department {
+  id          String    @id @default(uuid())
+  name        String
+  code        String?   @unique
+  parentId    String?   @map("parent_id")
+  managerId   String?   @map("manager_id")
+  sortOrder   Int       @default(0) @map("sort_order")
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  parent      Department? @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children    Department[] @relation("DepartmentHierarchy")
+  users       User[]
+  
+  @@map("departments")
+}
+
+// ==================== 即时通讯 ====================
+model Chat {
+  id          String      @id @default(uuid())
+  type        ChatType
+  name        String?
+  avatar      String?
+  createdBy   String      @map("created_by")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  // 关联
+  members     ChatMember[]
+  messages    Message[]
+  
+  @@map("chats")
+}
+
+model ChatMember {
+  id          String    @id @default(uuid())
+  chatId      String    @map("chat_id")
+  userId      String    @map("user_id")
+  role        ChatMemberRole @default(MEMBER)
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  lastReadAt  DateTime? @map("last_read_at")
+  
+  // 关联
+  chat        Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([chatId, userId])
+  @@map("chat_members")
+}
+
+model Message {
+  id          String      @id @default(uuid())
+  chatId      String      @map("chat_id")
+  senderId    String      @map("sender_id")
+  type        MessageType
+  content     String
+  fileUrl     String?     @map("file_url")
+  fileName    String?     @map("file_name")
+  fileSize    Int?        @map("file_size")
+  mentions    String[]    // 被@的用户ID数组
+  replyToId   String?     @map("reply_to_id")
+  isRecalled  Boolean     @default(false) @map("is_recalled")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  
+  // 关联
+  chat        Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender      User        @relation("SentMessages", fields: [senderId], references: [id])
+  
+  @@map("messages")
+}
+
+// ==================== 公示公告 ====================
+model Announcement {
+  id          String    @id @default(uuid())
+  title       String
+  content     String
+  categoryId  String    @map("category_id")
+  isTop       Boolean   @default(false) @map("is_top")
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  authorId    String    @map("author_id")
+  viewCount   Int       @default(0) @map("view_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  category    AnnouncementCategory @relation(fields: [categoryId], references: [id])
+  author      User      @relation(fields: [authorId], references: [id])
+  reads       AnnouncementRead[]
+  
+  @@map("announcements")
+}
+
+model AnnouncementCategory {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  announcements Announcement[]
+  
+  @@map("announcement_categories")
+}
+
+model AnnouncementRead {
+  id              String    @id @default(uuid())
+  announcementId  String    @map("announcement_id")
+  userId          String    @map("user_id")
+  readAt          DateTime  @default(now()) @map("read_at")
+  
+  // 关联
+  announcement    Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([announcementId, userId])
+  @@map("announcement_reads")
+}
+
+// ==================== 审批流程 ====================
+model ApprovalTemplate {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  icon        String?
+  formSchema  Json      @map("form_schema") // 表单JSON Schema
+  flowConfig  Json      @map("flow_config") // 流程配置
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  approvals   Approval[]
+  
+  @@map("approval_templates")
+}
+
+model Approval {
+  id          String    @id @default(uuid())
+  templateId  String    @map("template_id")
+  applicantId String    @map("applicant_id")
+  title       String
+  formData    Json      @map("form_data")
+  status      ApprovalStatus @default(PENDING)
+  currentNode String?   @map("current_node")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  completedAt DateTime? @map("completed_at")
+  
+  // 关联
+  template    ApprovalTemplate @relation(fields: [templateId], references: [id])
+  applicant   User      @relation(fields: [applicantId], references: [id])
+  tasks       ApprovalTask[]
+  
+  @@map("approvals")
+}
+
+model ApprovalTask {
+  id          String    @id @default(uuid())
+  approvalId  String    @map("approval_id")
+  approverId  String    @map("approver_id")
+  nodeName    String    @map("node_name")
+  action      ApprovalAction?
+  comment     String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  processedAt DateTime? @map("processed_at")
+  
+  // 关联
+  approval    Approval  @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  approver    User      @relation(fields: [approverId], references: [id])
+  
+  @@map("approval_tasks")
+}
+
+// ==================== 财务报销 ====================
+model Reimbursement {
+  id          String    @id @default(uuid())
+  applicantId String    @map("applicant_id")
+  type        ReimbursementType
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("CNY")
+  date        DateTime
+  description String
+  attachments String[]  // 附件URL数组
+  status      ReimbursementStatus @default(PENDING)
+  approverId  String?   @map("approver_id")
+  approvedAt  DateTime? @map("approved_at")
+  comment     String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  applicant   User      @relation(fields: [applicantId], references: [id])
+  
+  @@map("reimbursements")
+}
+
+// ==================== 客户管理 ====================
+model Customer {
+  id          String    @id @default(uuid())
+  name        String
+  type        CustomerType
+  industry    String?
+  scale       String?
+  website     String?
+  address     String?
+  description String?
+  status      CustomerStatus @default(POTENTIAL)
+  ownerId     String    @map("owner_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  owner       User      @relation(fields: [ownerId], references: [id])
+  contacts    Contact[]
+  followUps   FollowUp[]
+  contracts   Contract[]
+  
+  @@map("customers")
+}
+
+model Contact {
+  id          String    @id @default(uuid())
+  customerId  String    @map("customer_id")
+  name        String
+  title       String?
+  phone       String?
+  email       String?
+  wechat      String?
+  isPrimary   Boolean   @default(false) @map("is_primary")
+  createdBy   String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  creator     User      @relation(fields: [createdBy], references: [id])
+  
+  @@map("contacts")
+}
+
+model FollowUp {
+  id          String    @id @default(uuid())
+  customerId  String    @map("customer_id")
+  content     String
+  type        FollowUpType
+  nextPlan    String?   @map("next_plan")
+  nextDate    DateTime? @map("next_date")
+  createdBy   String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  creator     User      @relation(fields: [createdBy], references: [id])
+  
+  @@map("follow_ups")
+}
+
+model Contract {
+  id          String    @id @default(uuid())
+  customerId  String    @map("customer_id")
+  code        String    @unique
+  name        String
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("CNY")
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime  @map("end_date")
+  status      ContractStatus @default(DRAFT)
+  content     String?
+  attachments String[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // 关联
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  
+  @@map("contracts")
+}
+
+// ==================== 通知 ====================
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  type        NotificationType
+  title       String
+  content     String
+  data        Json?     // 关联数据
+  isRead      Boolean   @default(false) @map("is_read")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // 关联
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+// ==================== 枚举类型 ====================
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PermissionType {
+  MENU
+  BUTTON
+  API
+}
+
+enum ChatType {
+  PRIVATE
+  GROUP
+}
+
+enum ChatMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ApprovalAction {
+  APPROVE
+  REJECT
+  TRANSFER
+}
+
+enum ReimbursementType {
+  TRAVEL
+  MEAL
+  OFFICE
+  ENTERTAINMENT
+  OTHER
+}
+
+enum ReimbursementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum CustomerType {
+  ENTERPRISE
+  INDIVIDUAL
+  GOVERNMENT
+}
+
+enum CustomerStatus {
+  POTENTIAL
+  FOLLOWING
+  SIGNED
+  LOST
+}
+
+enum FollowUpType {
+  PHONE
+  EMAIL
+  VISIT
+  MEETING
+  OTHER
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum NotificationType {
+  SYSTEM
+  APPROVAL
+  CHAT
+  ANNOUNCEMENT
+  TASK
+}

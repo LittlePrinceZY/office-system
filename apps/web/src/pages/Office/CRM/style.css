@@ -1,0 +1,14 @@
+.crm-page {
+  padding: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.crm-card {
+  border-radius: 12px;
+}

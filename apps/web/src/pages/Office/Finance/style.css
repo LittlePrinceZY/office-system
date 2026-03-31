@@ -1,0 +1,14 @@
+.finance-page {
+  padding: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.finance-card {
+  border-radius: 12px;
+}

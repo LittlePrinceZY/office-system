@@ -1,0 +1,27 @@
+{
+  "name": "office-system",
+  "version": "1.0.0",
+  "description": "企业办公系统 - 包含通讯录、聊天、审批OA、公示公告、财务报销、客户管理等功能",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "db:generate": "cd apps/api && npx prisma generate",
+    "db:migrate": "cd apps/api && npx prisma migrate dev",
+    "db:studio": "cd apps/api && npx prisma studio",
+    "db:seed": "cd apps/api && npx prisma db seed"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

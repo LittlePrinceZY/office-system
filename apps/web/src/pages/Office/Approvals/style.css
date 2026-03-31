@@ -1,0 +1,43 @@
+.approvals-page {
+  padding: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.approvals-card {
+  border-radius: 12px;
+}
+
+/* 模板网格 */
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+  padding: 24px;
+}
+
+.template-card {
+  text-align: center;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.template-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.template-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.template-card h5 {
+  margin-bottom: 8px;
+}
