@@ -11,7 +11,7 @@ COPY apps/api/package*.json ./apps/api/
 COPY apps/api/prisma ./apps/api/prisma/
 
 # 安装所有依赖（包括 workspaces）
-RUN npm ci
+RUN npm install
 
 # 复制源代码
 COPY apps/api ./apps/api
@@ -36,7 +36,7 @@ COPY apps/api/package*.json ./apps/api/
 COPY apps/api/prisma ./apps/api/prisma/
 
 # 安装生产依赖
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # 生成 Prisma 客户端
 RUN cd apps/api && npx prisma generate
